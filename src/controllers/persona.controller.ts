@@ -7,13 +7,13 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  post,
-  param,
+  del,
   get,
   getModelSchemaRef,
+  param,
   patch,
+  post,
   put,
-  del,
   requestBody,
   response,
 } from '@loopback/rest';
@@ -23,7 +23,7 @@ import {PersonaRepository} from '../repositories';
 export class PersonaController {
   constructor(
     @repository(PersonaRepository)
-    public personaRepository : PersonaRepository,
+    public personaRepository: PersonaRepository,
   ) {}
 
   @post('/personas')
@@ -44,7 +44,8 @@ export class PersonaController {
     })
     persona: Omit<Persona, 'id'>,
   ): Promise<Persona> {
-    return this.personaRepository.create(persona);
+    //return this.personaRepository.create(persona);
+    const p = await this.personaRepository.create(persona);
   }
 
   @get('/personas/count')
@@ -52,9 +53,7 @@ export class PersonaController {
     description: 'Persona model count',
     content: {'application/json': {schema: CountSchema}},
   })
-  async count(
-    @param.where(Persona) where?: Where<Persona>,
-  ): Promise<Count> {
+  async count(@param.where(Persona) where?: Where<Persona>): Promise<Count> {
     return this.personaRepository.count(where);
   }
 
@@ -106,7 +105,8 @@ export class PersonaController {
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(Persona, {exclude: 'where'}) filter?: FilterExcludingWhere<Persona>
+    @param.filter(Persona, {exclude: 'where'})
+    filter?: FilterExcludingWhere<Persona>,
   ): Promise<Persona> {
     return this.personaRepository.findById(id, filter);
   }

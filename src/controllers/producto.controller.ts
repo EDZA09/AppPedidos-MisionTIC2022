@@ -1,3 +1,4 @@
+import {authenticate} from '@loopback/authentication';
 import {
   Count,
   CountSchema,
@@ -20,11 +21,14 @@ import {
 import {Producto} from '../models';
 import {ProductoRepository} from '../repositories';
 
+//protegiendo todos los metodos
+@authenticate('admin')
 export class ProductoController {
   constructor(
     @repository(ProductoRepository)
     public productoRepository: ProductoRepository,
   ) {}
+  //se debe autenticar que el registro sea tipo admin
 
   @post('/productos')
   @response(200, {
@@ -47,6 +51,8 @@ export class ProductoController {
     return this.productoRepository.create(producto);
   }
 
+  //exonerando la autenticación en este método
+  @authenticate.skip()
   @get('/productos/count')
   @response(200, {
     description: 'Producto model count',

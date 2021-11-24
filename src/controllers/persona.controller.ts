@@ -1,30 +1,54 @@
+import {service} from '@loopback/core';
+import {repository} from '@loopback/repository';
 import {
-  Count,
-  CountSchema,
-  Filter,
-  FilterExcludingWhere,
-  repository,
-  Where,
-} from '@loopback/repository';
-import {
-  del,
-  get,
   getModelSchemaRef,
-  param,
-  patch,
+  HttpErrors,
   post,
-  put,
   requestBody,
   response,
 } from '@loopback/rest';
-import {Persona} from '../models';
+import {Llaves} from '../config/llaves';
+import {Credenciales, Persona} from '../models';
 import {PersonaRepository} from '../repositories';
+import {AutenticacionService} from '../services';
+
+const fetch = require('node-fetch');
 
 export class PersonaController {
   constructor(
     @repository(PersonaRepository)
     public personaRepository: PersonaRepository,
+    //importando servicio de autenticacion
+    @service(AutenticacionService)
+    public servicioAutenticacion: AutenticacionService,
   ) {}
+
+  @post('/identificarPersona', {
+    responses: {
+      '200': {
+        description: 'Identificacion de usuarios',
+      },
+    },
+  })
+  async identificarPersona(@requestBody() credenciales: Credenciales) {
+    const p = await this.servicioAutenticacion.identificarPersona(
+      credenciales.usuario,
+      credenciales.clave,
+    );
+    if (p) {
+      const token = this.servicioAutenticacion.generarTokenJWT(p);
+      return {
+        datos: {
+          nombre: p.nombre,
+          correo: p.correo,
+          id: p.id,
+        },
+        tk: token,
+      };
+    } else {
+      throw new HttpErrors[401]('Datos inválidos');
+    }
+  }
 
   @post('/personas')
   @response(200, {
@@ -44,8 +68,25 @@ export class PersonaController {
     })
     persona: Omit<Persona, 'id'>,
   ): Promise<Persona> {
+    const clave = this.servicioAutenticacion.generarClave();
+    const claveCifrada = this.servicioAutenticacion.cifrarClave(clave);
+    persona.clave = claveCifrada;
+
     //return this.personaRepository.create(persona);
     const p = await this.personaRepository.create(persona);
+
+    //Notificacion al usuario
+    const destino = persona.correo;
+    const asunto = 'Registro en la app Pedidos';
+    const contenido = `hola, ${persona.nombre}, su nombre de usuario es: ${persona.correo} y la contraseña para el acceso a la app es: ${persona.clave}`;
+
+    fetch(
+      `${Llaves.urlServiceNotificaciones}/envio-correo?correo_destino = ${destino}&asunto = ${asunto}&contenido = ${contenido}`,
+    ).then((data: any) => {
+      console.log(data);
+    });
+
+    return p;
   }
 
   @get('/personas/count')

@@ -1,4 +1,3 @@
-import {service} from '@loopback/core';
 import {
   Count,
   CountSchema,
@@ -8,61 +7,26 @@ import {
   Where,
 } from '@loopback/repository';
 import {
-  del,
+  post,
+  param,
   get,
   getModelSchemaRef,
-  HttpErrors,
-  param,
   patch,
-  post,
   put,
+  del,
   requestBody,
   response,
 } from '@loopback/rest';
-import {Llaves} from '../config/llaves';
-import {Credenciales, Persona} from '../models';
+import {Persona} from '../models';
 import {PersonaRepository} from '../repositories';
-import {AutenticacionService} from '../services';
 
-const fetch = require('node-fetch');
-
-export class PersonaController {
+export class PruebaController {
   constructor(
     @repository(PersonaRepository)
-    public personaRepository: PersonaRepository,
-    //importando servicio de autenticacion
-    @service(AutenticacionService)
-    public servicioAutenticacion: AutenticacionService,
+    public personaRepository : PersonaRepository,
   ) {}
 
-  @post('/identificarPersona', {
-    responses: {
-      '200': {
-        description: 'Identificacion de usuarios',
-      },
-    },
-  })
-  async identificarPersona(@requestBody() credenciales: Credenciales) {
-    const p = await this.servicioAutenticacion.identificarPersona(
-      credenciales.usuario,
-      credenciales.clave,
-    );
-    if (p) {
-      const token = this.servicioAutenticacion.generarTokenJWT(p);
-      return {
-        datos: {
-          nombre: p.nombre,
-          correo: p.correo,
-          id: p.id,
-        },
-        tk: token,
-      };
-    } else {
-      throw new HttpErrors[401]('Datos inválidos');
-    }
-  }
-
-  @post('/personas')
+  @post('/prueba')
   @response(200, {
     description: 'Persona model instance',
     content: {'application/json': {schema: getModelSchemaRef(Persona)}},
@@ -80,37 +44,21 @@ export class PersonaController {
     })
     persona: Omit<Persona, 'id'>,
   ): Promise<Persona> {
-    const clave = this.servicioAutenticacion.generarClave();
-    const claveCifrada = this.servicioAutenticacion.cifrarClave(clave);
-    persona.clave = claveCifrada;
-
-    //return this.personaRepository.create(persona);
-    const p = await this.personaRepository.create(persona);
-
-    //Notificacion al usuario
-    const destino = persona.correo;
-    const asunto = 'Registro en la app Pedidos';
-    const contenido = `hola, ${persona.nombre}, su nombre de usuario es: ${persona.correo} y la contraseña para el acceso a la app es: ${persona.clave}`;
-
-    fetch(
-      `${Llaves.urlServiceNotificaciones}/envio-correo?correo_destino = ${destino}&asunto = ${asunto}&contenido = ${contenido}`,
-    ).then((data: any) => {
-      console.log(data);
-    });
-
-    return p;
+    return this.personaRepository.create(persona);
   }
 
-  @get('/personas/count')
+  @get('/prueba/count')
   @response(200, {
     description: 'Persona model count',
     content: {'application/json': {schema: CountSchema}},
   })
-  async count(@param.where(Persona) where?: Where<Persona>): Promise<Count> {
+  async count(
+    @param.where(Persona) where?: Where<Persona>,
+  ): Promise<Count> {
     return this.personaRepository.count(where);
   }
 
-  @get('/personas')
+  @get('/prueba')
   @response(200, {
     description: 'Array of Persona model instances',
     content: {
@@ -128,7 +76,7 @@ export class PersonaController {
     return this.personaRepository.find(filter);
   }
 
-  @patch('/personas')
+  @patch('/prueba')
   @response(200, {
     description: 'Persona PATCH success count',
     content: {'application/json': {schema: CountSchema}},
@@ -147,7 +95,7 @@ export class PersonaController {
     return this.personaRepository.updateAll(persona, where);
   }
 
-  @get('/personas/{id}')
+  @get('/prueba/{id}')
   @response(200, {
     description: 'Persona model instance',
     content: {
@@ -158,13 +106,12 @@ export class PersonaController {
   })
   async findById(
     @param.path.string('id') id: string,
-    @param.filter(Persona, {exclude: 'where'})
-    filter?: FilterExcludingWhere<Persona>,
+    @param.filter(Persona, {exclude: 'where'}) filter?: FilterExcludingWhere<Persona>
   ): Promise<Persona> {
     return this.personaRepository.findById(id, filter);
   }
 
-  @patch('/personas/{id}')
+  @patch('/prueba/{id}')
   @response(204, {
     description: 'Persona PATCH success',
   })
@@ -182,7 +129,7 @@ export class PersonaController {
     await this.personaRepository.updateById(id, persona);
   }
 
-  @put('/personas/{id}')
+  @put('/prueba/{id}')
   @response(204, {
     description: 'Persona PUT success',
   })
@@ -193,7 +140,7 @@ export class PersonaController {
     await this.personaRepository.replaceById(id, persona);
   }
 
-  @del('/personas/{id}')
+  @del('/prueba/{id}')
   @response(204, {
     description: 'Persona DELETE success',
   })

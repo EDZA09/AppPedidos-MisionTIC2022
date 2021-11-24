@@ -5,3 +5,4 @@ export * from './pedidos-producto.controller';
 export * from './persona.controller';
 export * from './producto.controller';
 export * from './pedido.controller';
+export * from './prueba.controller';
